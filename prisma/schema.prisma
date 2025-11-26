@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(uuid())
+  email           String   @unique
+  password        String
+  name            String
+  createdAt       DateTime @default(now())
+  syllabusContent String?
+  standard        String
+  interests       String[]
+  language        String?
+  selectedNeeds   String[]
+
+  stats           UserStats?
+
+  dataSources DataSource[]
+  lessons     Lesson[]
+  aiChats     AIChat[]
+  reminders   Reminder[]
+  contents    AIContent[]
+  subjects    Subject[]
+  tags        Tag[]
+  quizzes      Quiz[]
+}
+
+model UserStats {
+  id               String    @id @default(uuid())
+  userId           String    @unique
+  studyStreak      Int       @default(0) 
+  completedLessons Int       @default(0) 
+  weeklyProgress   Int       @default(0) 
+  quizAverage      Float? 
+  lastStudiedAt    DateTime? 
+  user             User      @relation(fields: [userId], references: [id])
+}
+
+model DataSource {
+  id         String           @id @default(uuid())
+  name       String
+  type       DataSourceType
+  fileType   String
+  size       Int              @default(0)
+  uploadDate DateTime         @default(now())
+  source     String
+  sourceUrl  String?
+  status     DataSourceStatus
+  progress   Int?
+  content    String?
+  url        String?
+
+  subjectId String?
+  subject   Subject? @relation(fields: [subjectId], references: [id])
+
+  lessonId String?
+  lesson   Lesson? @relation(fields: [lessonId], references: [id])
+
+  description String?
+  thumbnail   String?
+  tags        DataSourceTag[]
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+enum DataSourceStatus {
+  ERROR
+  PROCESSING
+  COMPLETED
+  READY
+}
+
+enum DataSourceType {
+  WEBSITE
+  TEXT
+  DOCS
+  PDF
+  IMAGE
+  VIDEO
+  AUDIO
+  YOUTUBE
+}
+
+model Subject {
+  id            String           @id @default(uuid())
+  name          String
+  color         String           @default("bg-blue-500")
+  status        DataSourceStatus
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  materialCount Int              @default(0)
+  syllabusPath  String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  lessons     Lesson[]
+  dataSources DataSource[]
+  quizzes      Quiz[]
+}
+
+model Tag {
+  id            String @id @default(uuid())
+  name          String @unique
+  materialCount Int    @default(0)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  dataSources DataSourceTag[]
+}
+
+model DataSourceTag {
+  dataSourceId String
+  tagId        String
+
+  dataSource DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
+  tag        Tag        @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([dataSourceId, tagId])
+}
+
+model AIChat {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  messages  Json
+  createdAt DateTime @default(now())
+}
+
+model AIContent {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  content     String
+  tags        String[]
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  createdAt   DateTime @default(now())
+}
+
+model Reminder {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  time        DateTime
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  createdAt   DateTime @default(now())
+}
+
+model Lesson {
+  id          String  @id @default(uuid())
+  title       String
+  description String
+  duration    String  @default("30 min")
+  level       String  @default("Beginner")
+  order       Int     @default(1)
+  progress    Int     @default(0)
+  image       String?
+
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  subjectId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  prerequisites   Lesson[] @relation("LessonPrerequisites")
+  prerequisiteFor Lesson[] @relation("LessonPrerequisites")
+
+  dataSources DataSource[]
+  quizzes      Quiz[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Quiz {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  difficulty   String   @default("Medium") 
+  
+  
+  questions    Json     
+  
+  
+  questionCount Int     @default(0)
+  timeLimit    Int?     
+  passingScore Int      @default(70)  
+  
+  
+  subjectId    String?
+  subject      Subject? @relation(fields: [subjectId], references: [id])
+  
+  lessonId     String?
+  lesson       Lesson?  @relation(fields: [lessonId], references: [id])
+  
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  
+  
+  attempts     Json?    
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
