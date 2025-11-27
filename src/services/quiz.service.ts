@@ -63,8 +63,8 @@ export const generateQuiz = async (
     let contextContent = '';
     if (subject.dataSources && subject.dataSources.length > 0) {
       contextContent = subject.dataSources
-        .filter((ds) => ds.content)
-        .map((ds) => ds.content)
+        .filter((ds: { content?: string }) => ds.content)
+        .map((ds: { content?: string }) => ds.content)
         .join('\n\n')
         .substring(0, 10000);
     }
@@ -138,6 +138,7 @@ export const generateQuiz = async (
         maxOutputTokens: 8192,
         temperature: 0.7,
         topP: 0.95,
+        responseMimeType: 'application/json',
       },
     });
 

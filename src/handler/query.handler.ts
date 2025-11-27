@@ -60,7 +60,7 @@ export const answerUserQuery = async (req: Request, res: Response) => {
           select: { id: true },
         });
 
-        dataSourceIds = dataSources.map((ds) => ds.id);
+        dataSourceIds = dataSources.map((ds: { id: string }) => ds.id);
         console.log(`Found ${dataSourceIds.length} data sources in this subject`);
 
         if (dataSourceIds.length > 0) {
@@ -93,6 +93,13 @@ export const answerUserQuery = async (req: Request, res: Response) => {
       If the context doesn't contain enough information to fully answer the question, acknowledge what you know 
       from the context and suggest what additional information might be needed.
       Always be encouraging, clear, and explain concepts in a way that's easy to understand.
+      
+      IMPORTANT: You MUST respond with a valid JSON object in the following format:
+      {
+        "answer": "Your detailed response here",
+        "confidence": "high" | "medium" | "low",
+        "suggestions": ["optional array of follow-up questions or topics to explore"]
+      }
     `;
 
       const result = await generativeModel.generateContent({
@@ -108,6 +115,7 @@ export const answerUserQuery = async (req: Request, res: Response) => {
           maxOutputTokens: 8192,
           temperature: 1,
           topP: 0.95,
+          responseMimeType: 'application/json',
         },
       });
 
@@ -119,11 +127,28 @@ export const answerUserQuery = async (req: Request, res: Response) => {
         });
       }
 
-      const answer = response.candidates[0].content.parts[0].text;
+      const rawAnswer = response.candidates[0].content.parts[0].text;
+      
+      // Parse the JSON response from Gemini and extract the answer text
+      let answerText = rawAnswer;
+      let confidence = 'medium';
+      let suggestions: string[] = [];
+      
+      try {
+        const parsedAnswer = JSON.parse(rawAnswer);
+        answerText = parsedAnswer.answer || rawAnswer;
+        confidence = parsedAnswer.confidence || 'medium';
+        suggestions = parsedAnswer.suggestions || [];
+      } catch (parseError) {
+        // If parsing fails, use the raw answer as-is
+        console.log('Could not parse AI response as JSON, using raw text');
+      }
 
       return void res.status(200).json({
         success: true,
-        answer,
+        answer: answerText,
+        confidence,
+        suggestions,
         query,
         relevanceScore: contextChunks.length > 0 ? contextChunks[0].score : 0,
         subjectId: subjectId || null,

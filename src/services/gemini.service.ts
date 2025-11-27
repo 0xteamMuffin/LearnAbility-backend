@@ -254,6 +254,7 @@ export const generateLessonContentSpecific = async (
         maxOutputTokens: 8192,
         temperature: 0.7,
         topP: 0.95,
+        responseMimeType: 'application/json',
       },
     });
 
@@ -264,16 +265,7 @@ export const generateLessonContentSpecific = async (
     }
 
     const responseText = response.candidates[0].content.parts[0].text;
-
-    let jsonStart = responseText.indexOf('{');
-    let jsonEnd = responseText.lastIndexOf('}') + 1;
-
-    if (jsonStart === -1 || jsonEnd === 0) {
-      throw new Error('Invalid JSON response format');
-    }
-
-    const jsonStr = responseText.substring(jsonStart, jsonEnd);
-    const lessonContent = JSON.parse(jsonStr);
+    const lessonContent = JSON.parse(responseText);
 
     console.log(
       `[GeminiService] Successfully generated specific lesson content for lesson: ${lessonId}`
@@ -508,11 +500,11 @@ Description: "${description}"
         maxOutputTokens: 512,
         temperature: 0.7,
         topP: 0.95,
+        responseMimeType: 'application/json',
       },
     });
 
     const initialText = initialResult.response.candidates[0].content.parts[0].text.trim();
-    // No code fences, so just parse
     const initialJson = JSON.parse(initialText);
     lessonContent.totalEstimatedTime = initialJson.totalEstimatedTime;
     lessonContent.learningObjectives = initialJson.learningObjectives;
@@ -580,18 +572,21 @@ Generate page ${pageIndex} as:
           maxOutputTokens: 2048,
           temperature: 0.7,
           topP: 0.95,
+          responseMimeType: 'application/json',
         },
       });
 
       const responseText = result.response.candidates[0].content.parts[0].text.trim();
       console.log(responseText);
-      if (responseText === 'DONE') {
+      
+      // Check if we're done - the model might return a JSON object with a done flag
+      const parsed = JSON.parse(responseText);
+      if (parsed.done === true || parsed.status === 'DONE') {
         done = true;
         break;
       }
-
-      // Parse and append the new page
-      const pageJson = JSON.parse(responseText) as Page;
+      // If it's a valid page object, use it
+      const pageJson = parsed as Page;
       lessonContent.pages.push(pageJson);
       pageIndex++;
     } catch (error) {
@@ -688,6 +683,7 @@ export const generateLessonContent = async (
         maxOutputTokens: 8192,
         temperature: 0.7,
         topP: 0.95,
+        responseMimeType: 'application/json',
       },
     });
 
@@ -698,16 +694,7 @@ export const generateLessonContent = async (
     }
 
     const responseText = response.candidates[0].content.parts[0].text;
-
-    let jsonStart = responseText.indexOf('[');
-    let jsonEnd = responseText.lastIndexOf(']') + 1;
-
-    if (jsonStart === -1 || jsonEnd === 0) {
-      throw new Error('Invalid JSON response format');
-    }
-
-    const jsonStr = responseText.substring(jsonStart, jsonEnd);
-    const lessons = JSON.parse(jsonStr);
+    const lessons = JSON.parse(responseText);
 
     console.log(
       `[GeminiService] Successfully generated ${lessons.length} lessons from syllabus: ${syllabusPath}`

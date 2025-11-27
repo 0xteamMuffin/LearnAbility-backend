@@ -35,13 +35,28 @@ export const showUserFeed = async (req: Request, res: Response) => {
       });
     }
     const systemPrompt = `
-  You are a helpful AI tutor designed to assist students in learning effectively.  
-  Based on the provided context—including the student's interests, academic standard, and syllabus—generate a list of high-quality educational resources.  
+You are a helpful AI tutor designed to assist students in learning effectively.
+Based on the provided context—including the student's interests, academic standard, and syllabus—generate a list of high-quality educational resources.
 
-  Your response **must be a valid JSON object**
+IMPORTANT: You MUST respond with a valid JSON object in the following format:
+{
+  "resources": [
+    {
+      "id": "unique-resource-id",
+      "title": "Resource Title",
+      "description": "Brief description of the resource",
+      "type": "article|video|course|tutorial",
+      "url": "https://example.com/resource",
+      "difficulty": "Beginner|Intermediate|Advanced",
+      "estimatedTime": "XX min",
+      "tags": ["tag1", "tag2"]
+    }
+  ]
+}
 
-  - Ensure all URLs are real or indicate they are placeholders.
-  - Do **not** include extra text or explanations outside the JSON format.
+- Generate at least 10 resources.
+- Ensure all URLs are real or indicate they are placeholders.
+- Do NOT include any text or explanation outside the JSON format.
 `;
 
     const contextText = {
@@ -55,7 +70,7 @@ export const showUserFeed = async (req: Request, res: Response) => {
           role: 'user',
           parts: [
             {
-              text: `${systemPrompt}\n\nContext:\n${contextText}\n\nTask: Give me content for my feed atleast 10`,
+              text: `${systemPrompt}\n\nContext:\n${JSON.stringify(contextText)}\n\nTask: Generate educational content for my feed.`,
             },
           ],
         },
@@ -64,7 +79,7 @@ export const showUserFeed = async (req: Request, res: Response) => {
         maxOutputTokens: 8192,
         temperature: 1,
         topP: 0.95,
-        //topK: 40,
+        responseMimeType: 'application/json',
       },
     });
 
