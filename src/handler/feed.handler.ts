@@ -4,7 +4,7 @@ import { VertexAI } from '@google-cloud/vertexai';
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'learnability-project';
 const LOCATION = 'us-central1';
-const MODEL_NAME = 'gemini-flash-latest';
+const MODEL_NAME = 'gemini-2.5-flash-preview-09-2025';
 
 let vertexAI: VertexAI;
 let generativeModel: any;
